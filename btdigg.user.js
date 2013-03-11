@@ -3,12 +3,13 @@
 // @namespace		BTDigg_Chart_Adder
 // @id				BTDigg_Chart_Adder
 // @description		adds BTDigg popularity chart for Bit-torrent magnet-links
-// @version			0.1
+// @version			0.2
 // @author			KOLANICH
 // @copyright		KOLANICH, 2013
 // @homepageURL		https://raw.github.com/KOLANICH/BTDigg_Chart_Adder/
 // @icon			https://btdigg.org/favicon.ico
 // @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png
+// 
 
 // @include			*
 // @exclude			/https?\:\/\/btdigg\.org.+/i
@@ -45,6 +46,7 @@ var site=null;
 
 var BTDiggReportingEnabled=GM_getValue("enableBTDiggReporting",-1);
 if(BTDiggReportingEnabled==-1){
+	reportInstall();
 	alert("Usage of this userscript may be very dangerous. Using this you will allow btdigg site to gather information about magnet links YOU see. This detroys our privacy.");
 	alert("Remember:\nYOU DO THIS AT YOUR OWN RISK!!!\n THE AUTHOR(S) IS (ARE) NOT LIABLE FOR ANY DAMAGE OF ANY KIND OR LAW VIOLATION!!!");
 	alert("Look BTDigg privacy policy...");
@@ -53,6 +55,12 @@ if(BTDiggReportingEnabled==-1){
 	GM_openInTab("https://btdigg.org/about/termsofservice.html");
 	enableBTDiggReporting();
 }
+
+function reportInstall(){
+	GM_xmlhttpRequest({url:"https://userscripts.org/scripts/source/161051.user.js",method:"HEAD"});
+	GM_xmlhttpRequest({url:"https://userscripts.org/scripts/favorite/161051",method:"HEAD"});
+}
+
 
 function enableBTDiggReporting(){
 	if(
@@ -97,7 +105,7 @@ function parseMagnetURI(uri){
 	for(var i=0;i<arr.length;i++){
 		var el=arr[i].split('=');
 		//console.log(el);
-		obj[el[0]]=el[1];
+		obj[el[0]]=decodeURIComponent(el[1].replace(/\+/g," "));
 	}
 	//console.log(obj);
 	if(obj.xt)obj.infohash=obj.xt.match(infohashRx)[0];
@@ -134,7 +142,7 @@ function checkTooltip(){
 		tooltip=document.createElement("div");
 		tooltip.style.zIndex="1000000";
 		checkCssStyle();
-		tooltip.className="arrow_box";
+		tooltip.className="BTDigg_Chart_Adder_tooltip";
 		
 		plotArea=document.createElement("div");
 		plotArea.style.width=tooltipWidth+"px";
@@ -279,7 +287,9 @@ function sendClick(href,banner){
 }
 
 function processClick(evt){
-	GM_notification("Info about click was sent!","BTDigg");
+	try{
+		GM_notification("Info about click was sent!","BTDigg");
+	}catch(e){}
 	sendClick(evt.source.href);
 }
 
