@@ -6,9 +6,9 @@
 // @version			0.2
 // @author			KOLANICH
 // @copyright		KOLANICH, 2013
-// @homepageURL		https://raw.github.com/KOLANICH/BTDigg_Chart_Adder/
+// @homepageURL		https://github.com/KOLANICH/BTDigg_Chart_Adder/
 // @icon			https://btdigg.org/favicon.ico
-// @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png
+// @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png ./images/screenshots/nnm-club.ru.png
 // 
 
 // @include			*
