@@ -3,12 +3,13 @@
 // @namespace		BTDigg_Chart_Adder
 // @id				BTDigg_Chart_Adder
 // @description		adds BTDigg popularity chart for Bit-torrent magnet-links
-// @version			0.2
+// @version			0.2.1
 // @author			KOLANICH
 // @copyright		KOLANICH, 2013
 // @homepageURL		https://github.com/KOLANICH/BTDigg_Chart_Adder/
 // @icon			https://btdigg.org/favicon.ico
-// @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png ./images/screenshots/nnm-club.ru.png
+// @license			GNU GPL v3
+// @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png ./images/screenshots/nnm-club.ru.png ./images/screenshots/kickasstorrents.com.png ./images/screenshots/extratorrent.com.png
 // 
 
 // @include			*
@@ -40,9 +41,10 @@ var preloader=new Image();
 preloader.src=GM_getResourceURL("preloader");
 var arrowHeight=40;
 var parseURIRx=/(\w+)=([^&]+)/ig;
-var infohashRx=/[A-F0-9]{40}/i;
+var infohashRx=/[A-F0-9]{40}|[A-Z2-7]{32}/i;
 
 var site=null;
+var currentLink=null;
 
 var BTDiggReportingEnabled=GM_getValue("enableBTDiggReporting",-1);
 if(BTDiggReportingEnabled==-1){
@@ -108,7 +110,10 @@ function parseMagnetURI(uri){
 		obj[el[0]]=decodeURIComponent(el[1].replace(/\+/g," "));
 	}
 	//console.log(obj);
-	if(obj.xt)obj.infohash=obj.xt.match(infohashRx)[0];
+	if(obj.xt){
+		var infohash=obj.xt.match(infohashRx)[0];
+		if(infohash)obj.infohash=infohash;
+	}
 	return obj;
 }
 /*!
@@ -140,7 +145,8 @@ var plotArea;
 function checkTooltip(){
 	if(!tooltip){
 		tooltip=document.createElement("div");
-		tooltip.style.zIndex="1000000";
+		tooltip.style.zIndex="2147483647";
+		tooltip.style.position="absolute";
 		checkCssStyle();
 		tooltip.className="BTDigg_Chart_Adder_tooltip";
 		
@@ -155,14 +161,17 @@ function checkTooltip(){
 }
 
 var tooltipCurrentWidth;
-function placeTooltip(link){
+
+/*!
+@param link DOMNode to where tooltip should be placed
+*/
+function placeTooltip(link,offsets){
 	console.log(link);
 	var linkRect=link.getBoundingClientRect()
 	console.log(linkRect);
-	tooltip.style.position="fixed";
 	tooltip.style.display="";
-	tooltip.style.top=linkRect.top+arrowHeight+"px";
-	tooltip.style.left=linkRect.left-tooltipCurrentWidth/2+linkRect.width/2+"px";
+	tooltip.style.top=linkRect.top+arrowHeight+window.pageYOffset+"px";
+	tooltip.style.left=linkRect.left-tooltipCurrentWidth/2+linkRect.width/2+window.pageXOffset+"px";
 	return tooltip;
 }
 
@@ -179,6 +188,7 @@ function addPlotToPage(evt){
 	isLoading=0;//!< 0 is not loading now, 1 is loading now
 	//console.log("link descriptor is",this);
 	//console.log("got text",evt.responseText);
+	currentLink=this.link;
 	if(!evt.responseText){
 		hideTooltip();
 		GM_notification("Info is not available for this torrent");
@@ -188,7 +198,7 @@ function addPlotToPage(evt){
 	console.log("splitted",arr);
 	checkPlottingLibrary();
 	
-	placeTooltip(this.link);
+	placeTooltip(currentLink);
 	
 	
 	var flotrConfig={
@@ -215,7 +225,7 @@ function addPlotToPage(evt){
 	
 	
 	Flotr.draw(plotArea, [arr], flotrConfig);
-	placeTooltip(this.link);
+	placeTooltip(currentLink);
 	
 }
 
@@ -224,6 +234,7 @@ function showError(evt){
 }
 
 function hideTooltip(){
+	currentLink=null;
 	if(!isLoading)tooltip.style.display="none";
 }
 
@@ -288,10 +299,15 @@ function sendClick(href,banner){
 
 function processClick(evt){
 	try{
-		GM_notification("Info about click was sent!","BTDigg");
+		GM_notification("Info about the click was sent!","BTDigg");
 	}catch(e){}
 	sendClick(evt.source.href);
 }
+
+/*function processScroll(evt){
+    console.log(evt);
+	if(currentLink)placeTooltip(currentLink,{x:evt.mozMovementX,y:evt.mozMovementY});
+}*/
 
 function main(){
 	var links=getMagnetLinksFromPage();
@@ -301,9 +317,9 @@ function main(){
 			links[i].magnet.link=links[i];
 			links[i].addEventListener("mouseenter",showTooltipForLink,false);
 			links[i].addEventListener("mouseleave",hideTooltip,false);
-			links[i].addEventListener("DOMMouseScroll",hideTooltip,false);
 			if(BTDiggReportingEnabled)links[i].addEventListener("click",processClick,true);
 		}
 	}
+	//document.body.addEventListener("DOMMouseScroll",processScroll,true);
 }
 main();
