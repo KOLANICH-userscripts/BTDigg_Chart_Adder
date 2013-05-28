@@ -1,31 +1,32 @@
 ﻿// ==UserScript==
-// @name			BTDigg_Chart_Adder
-// @namespace		BTDigg_Chart_Adder
-// @id				BTDigg_Chart_Adder
-// @description		adds BTDigg popularity chart for Bit-torrent magnet-links
-// @version			0.2.1
-// @author			KOLANICH
-// @copyright		KOLANICH, 2013
-// @homepageURL		https://github.com/KOLANICH/BTDigg_Chart_Adder/
-// @icon			https://btdigg.org/favicon.ico
-// @license			GNU GPL v3
-// @screenshot		./images/screenshots/tpb.png ./images/screenshots/btdigg.png ./images/screenshots/nnm-club.ru.png ./images/screenshots/kickasstorrents.com.png ./images/screenshots/extratorrent.com.png
-// 
+// @name				BTDigg_Chart_Adder
+// @namespace			BTDigg_Chart_Adder
+// @id					BTDigg_Chart_Adder
+// @description			adds BTDigg popularity chart for Bit-torrent magnet-links
+// @version				0.2.2
+// @author				KOLANICH
+// @copyright			KOLANICH, 2013
+// @homepageURL			https://github.com/KOLANICH/BTDigg_Chart_Adder/
+// @icon				https://btdigg.org/favicon.ico
+// @license				GNU GPL v3
+// @screenshot			./images/screenshots/tpb.png ./images/screenshots/btdigg.png ./images/screenshots/nnm-club.ru.png ./images/screenshots/kickasstorrents.com.png ./images/screenshots/extratorrent.com.png
+// @contributionURL		https://github.com/KOLANICH/BTDigg_Chart_Adder/fork
+// @contributionAmount	feel free to fork and contribute
 
-// @include			*
-// @exclude			/https?\:\/\/btdigg\.org.+/i
-// @noframes		1
-// @run-at			document-idle
+// @include				*
+// @exclude				/https?\:\/\/btdigg\.org.+/i
+// @noframes			1
+// @run-at				document-idle
 
-// @uso:rating		10.00
-// @optimize		1
+// @uso:rating			10.00
+// @optimize			1
 
-// @resource		flotr2lib https://raw.github.com/HumbleSoftware/Flotr2/master/flotr2.min.js
-// @resource		tooltipcss ./tooltip.css
-// @resource		preloader ./images/preloader.png
-// @btdiggBaseURL	http://api.btdigg.org/api/public-8e9a50f8335b964f
-// @tooltipWidth	600
-// @tooltipHeight	200
+// @resource			flotr2lib https://raw.github.com/HumbleSoftware/Flotr2/master/flotr2.min.js
+// @resource			tooltipcss ./tooltip.css
+// @resource			preloader ./images/preloader.png
+// @btdiggBaseURL		http://api.btdigg.org/api/public-8e9a50f8335b964f
+// @tooltipWidth		600
+// @tooltipHeight		200
 // ==/UserScript==
 
 /*
@@ -49,7 +50,7 @@ var currentLink=null;
 var BTDiggReportingEnabled=GM_getValue("enableBTDiggReporting",-1);
 if(BTDiggReportingEnabled==-1){
 	reportInstall();
-	alert("Usage of this userscript may be very dangerous. Using this you will allow btdigg site to gather information about magnet links YOU see. This detroys our privacy.");
+	alert("Usage of this userscript may be very dangerous. Using this you will allow btdigg site to gather information about magnet links YOU see. This destroys our privacy.");
 	alert("Remember:\nYOU DO THIS AT YOUR OWN RISK!!!\n THE AUTHOR(S) IS (ARE) NOT LIABLE FOR ANY DAMAGE OF ANY KIND OR LAW VIOLATION!!!");
 	alert("Look BTDigg privacy policy...");
 	GM_openInTab("https://btdigg.org/about/privacypolicy.html");
@@ -66,7 +67,7 @@ function reportInstall(){
 
 function enableBTDiggReporting(){
 	if(
-		confirm("Would you like to send BTDigg info about all magnet links clicked by you? I don't recommend you to do this, because any collected information may be used against you in a court of law (or sword law). Make sure you don't download anything restricted!!!")
+		confirm("Would you like to send BTDigg info about all magnet links clicked by you? I don't recommend you to do this, because any collected information may be used against you in a court of law (or sword law). Make sure you wouldn't download anything restricted if you enabled this!!! This feature was implemented because I could implement it and I hope it will help BTDigg to index maget links.")
 		&&
 		prompt("YOU DO THIS AT YOUR OWN RISK!!!\n THE AUTHOR(S) IS (ARE) NOT LIABLE FOR ANY DAMAGE OF ANY KIND OR LAW VIOLATION!!!\n Now you were warned.\nA you really sure?\nType \"I am warned and accept.\" if you really want to enable this feature.")=="I am warned and accept."
 	){
@@ -200,19 +201,29 @@ function addPlotToPage(evt){
 	
 	placeTooltip(currentLink);
 	
-	
+	//
 	var flotrConfig={
 		xaxis: {
 			mode: 'time',
 			timeUnit:"second",
 			labelsAngle: 45,
-			minorTickFreq: 3600
+			showMinorLabels: true,
 		},
 		selection: {
 			mode: 'x'
 		},
-		HtmlText: false
+		grid: {
+			minorVerticalLines: true,
+		},
+		points: {
+			show: true,
+		},
+		lines: {
+			show: true,
+		},
+		HtmlText: false,
 	};
+	
 	if(this.dn)flotrConfig.title=this.dn;
 	if(this.xl)flotrConfig.subtitle=this.xl+" Bytes";
 	
