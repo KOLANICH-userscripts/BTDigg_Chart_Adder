@@ -3,7 +3,7 @@
 // @namespace			BTDigg_Chart_Adder
 // @id					BTDigg_Chart_Adder
 // @description			adds BTDigg popularity chart for Bit-torrent magnet-links
-// @version				0.2.2
+// @version				0.2.3
 // @author				KOLANICH
 // @copyright			KOLANICH, 2013
 // @homepageURL			https://github.com/KOLANICH/BTDigg_Chart_Adder/
@@ -17,8 +17,6 @@
 // @exclude				/https?\:\/\/btdigg\.org.+/i
 // @noframes			1
 // @run-at				document-idle
-
-// @uso:rating			10.00
 // @optimize			1
 
 // @resource			flotr2lib https://raw.github.com/HumbleSoftware/Flotr2/master/flotr2.min.js
@@ -33,6 +31,23 @@
 Preloader by http://preloaders.net/
 Tooltip by http://cssarrowplease.com/
 This script is distributed under conditions of GNU GPL v3.
+*/
+
+/*
+	Copyright (C) 2013  KOLANICH
+	
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var btdiggApiBaseURL=GM_getMetadata("btdiggbaseurl")[0];
@@ -101,22 +116,7 @@ var cssInjected=false;
 function checkCssStyle(){
 	if(!cssInjected)GM_addStyle(GM_getResourceText("tooltipcss"));
 }
-function parseMagnetURI(uri){
-	parseURIRx.lastIndex=0;
-	var arr=uri.match(parseURIRx);
-	var obj={};
-	for(var i=0;i<arr.length;i++){
-		var el=arr[i].split('=');
-		//console.log(el);
-		obj[el[0]]=decodeURIComponent(el[1].replace(/\+/g," "));
-	}
-	//console.log(obj);
-	if(obj.xt){
-		var infohash=obj.xt.match(infohashRx)[0];
-		if(infohash)obj.infohash=infohash;
-	}
-	return obj;
-}
+
 /*!
 	@param btdescriptor
 	{
@@ -125,6 +125,30 @@ function parseMagnetURI(uri){
 		ещё что-либо
 	}
 */
+function BTDescriptor(uri){
+	if(uri)this.parseMagnetURI(uri);
+	console.log(this);
+};
+BTDescriptor.prototype.parseMagnetURI=function(uri){
+	parseURIRx.lastIndex=0;
+	var arr=uri.match(parseURIRx);
+	for(var i=0;i<arr.length;i++){
+		var el=arr[i].split('=');
+		//console.log(el);
+		this[el[0]]=decodeURIComponent(el[1].replace(/\+/g," "));
+	}
+	//console.log(this);
+	if(this.xt){
+		var infohash=this.xt.match(infohashRx)[0];
+		if(infohash)this.infohash=infohash;
+	}
+};
+BTDescriptor.parseMagnetURI=function(uri){
+	var d=new BTDescriptor();
+	d.parseMagnetURI(uri);
+	return d;
+};
+
 function getMagnetLinksFromPage(){
 	return Array.prototype.filter.call(document.querySelectorAll("a[href]"),function(lnk){return lnk.protocol=="magnet:";});
 }
@@ -168,16 +192,18 @@ var tooltipCurrentWidth;
 */
 function placeTooltip(link,offsets){
 	console.log(link);
-	var linkRect=link.getBoundingClientRect()
+	var linkRect=link.getBoundingClientRect();
 	console.log(linkRect);
 	tooltip.style.display="";
-	tooltip.style.top=linkRect.top+arrowHeight+window.pageYOffset+"px";
-	tooltip.style.left=linkRect.left-tooltipCurrentWidth/2+linkRect.width/2+window.pageXOffset+"px";
+	tooltip.style.top=(linkRect.top+arrowHeight+window.pageYOffset)+"px";
+	tooltip.style.left=(linkRect.left-tooltipCurrentWidth/2+linkRect.width/2+window.pageXOffset)+"px";
 	return tooltip;
 }
 
 function tsvToArray(txt){
-	return txt.split("\n").map(function(el){return el.split("\t").map(function(el){return parseInt(el)});});
+	var arr=txt.split("\n").map(function(el){return el.split("\t").map(function(el){return parseInt(el)});});
+	if(Number.isNaN(arr[arr.length-1][0]))arr.splice(arr.length-1,1);
+	return arr;
 }
 
 function cloneSize(target,donor){
@@ -198,7 +224,6 @@ function addPlotToPage(evt){
 	var arr=tsvToArray(evt.responseText);
 	console.log("splitted",arr);
 	checkPlottingLibrary();
-	
 	placeTooltip(currentLink);
 	
 	//
@@ -206,6 +231,7 @@ function addPlotToPage(evt){
 		xaxis: {
 			mode: 'time',
 			timeUnit:"second",
+			timeMode:'local',
 			labelsAngle: 45,
 			showMinorLabels: true,
 		},
@@ -323,7 +349,7 @@ function processClick(evt){
 function main(){
 	var links=getMagnetLinksFromPage();
 	for(var i=0;i<links.length;i++){
-		links[i].magnet=parseMagnetURI(links[i].href);
+		links[i].magnet=new BTDescriptor(links[i].href);
 		if(links[i].magnet.infohash){
 			links[i].magnet.link=links[i];
 			links[i].addEventListener("mouseenter",showTooltipForLink,false);
