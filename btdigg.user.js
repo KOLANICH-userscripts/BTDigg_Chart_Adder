@@ -3,9 +3,9 @@
 // @namespace			BTDigg_Chart_Adder
 // @id					BTDigg_Chart_Adder
 // @description			adds BTDigg popularity chart for Bit-torrent magnet-links
-// @version				0.2.3
+// @version				0.2.4
 // @author				KOLANICH
-// @copyright			KOLANICH, 2013
+// @copyright			KOLANICH, 2014
 // @homepageURL			https://github.com/KOLANICH/BTDigg_Chart_Adder/
 // @icon				https://btdigg.org/favicon.ico
 // @license				GNU GPL v3
@@ -25,6 +25,8 @@
 // @btdiggBaseURL		http://api.btdigg.org/api/public-8e9a50f8335b964f
 // @tooltipWidth		600
 // @tooltipHeight		200
+// @installationReportIteration	1
+// @scriptId			4706
 // ==/UserScript==
 
 /*
@@ -34,7 +36,7 @@ This script is distributed under conditions of GNU GPL v3.
 */
 
 /*
-	Copyright (C) 2013  KOLANICH
+	Copyright (C) 2013-2014  KOLANICH
 	
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -63,9 +65,9 @@ var site=null;
 var currentLink=null;
 
 var BTDiggReportingEnabled=GM_getValue("enableBTDiggReporting",-1);
+
 if(BTDiggReportingEnabled==-1){
-	reportInstall();
-	alert("Usage of this userscript may be very dangerous. Using this you will allow btdigg site to gather information about magnet links YOU see. This destroys our privacy.");
+	alert("Usage of this userscript may be very dangerous. Using this you will allow BTDigg site to gather information about magnet links YOU see. This destroys our privacy. We know nothing about BTDigg true intentions, they may be working for copyrust.\nAnother risk is that BTDigg have ssl certificate only for www.btdigg.com and btdigg.com, but noot for api.btdigg.com, so we have to USE UNENCRYPTED PROTOCOL, WHICH MAKES ANYONE WHO CANE EAVESDROP YOUR INTERNET CONNECTION, INCLUDING GOVERNMENT AGENCIES, KNOW WHAT LINKS DO YOU REQUEST STATISTICS FOR");
 	alert("Remember:\nYOU DO THIS AT YOUR OWN RISK!!!\n THE AUTHOR(S) IS (ARE) NOT LIABLE FOR ANY DAMAGE OF ANY KIND OR LAW VIOLATION!!!");
 	alert("Look BTDigg privacy policy...");
 	GM_openInTab("https://btdigg.org/about/privacypolicy.html");
@@ -73,16 +75,59 @@ if(BTDiggReportingEnabled==-1){
 	GM_openInTab("https://btdigg.org/about/termsofservice.html");
 	enableBTDiggReporting();
 }
+reportInstallationIfNeeded();
 
-function reportInstall(){
-	GM_xmlhttpRequest({url:"https://userscripts.org/scripts/source/161051.user.js",method:"HEAD"});
-	GM_xmlhttpRequest({url:"https://userscripts.org/scripts/favorite/161051",method:"HEAD"});
+function GM_xhrPr(obj){
+	return function(resolve, reject) {
+		obj.onload=resolve;
+		obj.onerror=reject;
+		GM_xmlhttpRequest(obj);
+	};
+}
+
+function reportInstallationIfNeeded(){
+	const instReptItKey="installationReportIteration";
+	var instReptIt=GM_getMetadata(instReptItKey.toLowerCase())[0];
+	if(GM_getValue(instReptItKey,0)<instReptIt){
+		const scriptId=GM_getMetadata("scriptid")[0];
+		const greaseForkScripts="https://greasyfork.org/scripts/";
+		let token="";
+		let pr=new Promise(GM_xhrPr({url:greaseForkScripts+scriptId, method:"GET", ignoreCache:true}))
+			.then((xhr)=>findCSRFToken(xhr.responseText))
+			.then((token)=>{
+				new Promise(GM_xhrPr({
+					url:"https://greasyfork.org/script_sets/add_to_set",method:"POST",
+					ignoreCache:true,
+					data:"utf8=%E2%9C%93&authenticity_token="+encodeURIComponent(token)+"&action-set=ai-336&script_id="+scriptId,
+					headers:{"Content-Type":"application/x-www-form-urlencoded"}
+				}))
+					.then((xhr)=>findCSRFToken(xhr.responseText))
+					.then((token)=>{
+						new Promise(GM_xhrPr({
+							url:greaseForkScripts+scriptId+"/install-ping?authenticity_token="+token,
+							method:"POST", ignoreCache:true
+						}))
+						.then((xhr)=>GM_setValue(instReptItKey,instReptIt));
+					});
+			});
+	}
+}
+
+function findCSRFToken(source){
+	const tokenFieldRx=/<meta[^<>]*name=(['"])csrf-token\1[^<>]*\/>/i
+	const valueRx=/content=(["'])([A-Z0-9+=]*)\1/i;
+	let m=source.match(tokenFieldRx);
+	if(m[0]){
+		m=m[0].match(valueRx);
+		if(m[2])return m[2];
+	}
+	return false;
 }
 
 
 function enableBTDiggReporting(){
 	if(
-		confirm("Would you like to send BTDigg info about all magnet links clicked by you? I don't recommend you to do this, because any collected information may be used against you in a court of law (or sword law). Make sure you wouldn't download anything restricted if you enabled this!!! This feature was implemented because I could implement it and I hope it will help BTDigg to index maget links.")
+		confirm("Would you like to send BTDigg info about all magnet links clicked by you? I don't recommend you to do this, because any collected information may be used against you in a court of (sword) law. Make sure you wouldn't download anything illegal or copyrighted when you enabled this!!! This feature was implemented because I could implement it and I hope it will help BTDigg to index maget links.")
 		&&
 		prompt("YOU DO THIS AT YOUR OWN RISK!!!\n THE AUTHOR(S) IS (ARE) NOT LIABLE FOR ANY DAMAGE OF ANY KIND OR LAW VIOLATION!!!\n Now you were warned.\nA you really sure?\nType \"I am warned and accept.\" if you really want to enable this feature.")=="I am warned and accept."
 	){
@@ -155,13 +200,12 @@ function getMagnetLinksFromPage(){
 
 var isLoading=0;
 
+
 function requestTorrentPopularityByLink(btdescriptor){
-	GM_xmlhttpRequest({
+	return new Promise(GM_xhrPr({
 		method:"GET",
 		url:btdiggApiBaseURL+"/h02?info_hash="+btdescriptor.infohash,
-		onload:addPlotToPage.bind(btdescriptor),
-		onerror:showError
-	});
+	})).then(addPlotToPage.bind(btdescriptor),showError);
 }
 
 var tooltip=null;
@@ -260,7 +304,7 @@ function addPlotToPage(evt){
 	preloader.style.display="none";
 	plotArea.style.display="";
 	
-	
+	console.log(flotrConfig);
 	Flotr.draw(plotArea, [arr], flotrConfig);
 	placeTooltip(currentLink);
 	

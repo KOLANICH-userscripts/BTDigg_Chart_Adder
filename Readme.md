@@ -8,7 +8,7 @@ Adds popularity chart for magnet links. Makes a tooltip containing a chart of ch
 
 <span style="font-size:30px">[>>Install<<](https://raw.github.com/KOLANICH/BTDigg_Chart_Adder/master/btdigg.user.js "INSTALL TEH USERSCRIPT!!!")</span>
 
-Also feel free to [fork](https://raw.github.com/KOLANICH/BTDigg_Chart_Adder/).
+Also feel free to [fork](https://github.com/KOLANICH/BTDigg_Chart_Adder/).
 
 BTDigg
 --
